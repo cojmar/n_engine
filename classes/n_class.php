@@ -1,7 +1,7 @@
 <?php
 /*		Project name : N_CLASS (the N class)
 *		Author : Alex Platon
-*		Version : 2.5 
+*		Version : 2.6 
 *
 *		Description : 
 *			This class has the main purpose to include other classes as functions if the function not exsits on call, 
@@ -23,7 +23,7 @@
 *			2.4	$this->cfg() will return all intialized config until now as an array
 *					$this->cfg('path','scripts') can be array or object
 *			2.5 redone __callStatic to work on more php versions
-*
+*			2.6 if is set $config['path']['git'] 'https://raw.githubusercontent.com/cojmar/n_engine/master/classes/',	 n_class will try to download calses from git *			if missing
 *			Since version 2.1 config file is optional if it is missing current class path will be default include path
 *
 *		Aditional functions:
@@ -45,6 +45,7 @@
 */	
 
 /*Version Log
+*	2.6 Suports GitHub sync for missing modules
 *  2.3 $this->cfg('path','scripts') can be array or object
 *	2.2	- modular config
 *	2.1	- config is optional
@@ -107,39 +108,62 @@ class n_class
 			if (file_exists($file))
 			{
 				include_once($file);
+				//== If class exists try construct
+				if (class_exists($class))
+				{
+					$r = new ReflectionClass($class);
+					$constructor = $r->getConstructor();
+					if (!empty($constructor))
+					{
+						if($args)
+						{
+							$ret = $r->newInstanceArgs($args);
+						}
+						else
+						{
+							$ret = $r->newInstance();
+						}
+					}
+					else
+					{
+						if (method_exists($r,'newInstanceWithoutConstructor'))
+						{
+							$ret = $r->newInstanceWithoutConstructor();
+						}
+						else
+						{
+							$ret = new $class;
+						}
+					}
+					break;
+				}
 			}
-		}
-		//== If class exists try construct
-		if (class_exists($class))
+		}					
+		if (!$ret && $this->cfg('path','git')) foreach(self::$include_path as $path)
 		{
-			$r = new ReflectionClass($class);
-			$constructor = $r->getConstructor();
-			if (!empty($constructor))
+			if (empty($git_path))
 			{
-				if($args)
-				{
-					$ret = $r->newInstanceArgs($args);
-				}
-				else
-				{
-					$ret = $r->newInstance();
-				}
+				$git_path = $this->cfg('path','git');
+				if (substr($git_path,-1) != '/') $git_path .="/";
+				$git_path_ar = explode("/",$git_path);
+				array_pop($git_path_ar);
+				$split_at = array_pop($git_path_ar).DIRECTORY_SEPARATOR;
 			}
-			else
+			$local_file = $path.DIRECTORY_SEPARATOR.$class.".php";
+			$tmp_path = explode($split_at,$local_file);			
+			array_shift($tmp_path);
+			$tmp_path = str_replace(DIRECTORY_SEPARATOR,"/",implode($split_at,$tmp_path));
+			$remote_file = $git_path.$tmp_path;
+			@$file_data = file_get_contents($remote_file);
+			if (!empty($file_data))
 			{
-				if (method_exists($r,'newInstanceWithoutConstructor'))
-				{
-					$ret = $r->newInstanceWithoutConstructor();
-				}
-				else
-				{
-					$ret = new $class;
-				}
+				if(!file_exists($path.DIRECTORY_SEPARATOR)) mkdir($path.DIRECTORY_SEPARATOR);
+				file_put_contents($local_file,$file_data);
+				return self::load_class($class,$args);
 			}
 		}
 		return $ret;
 	}
-
 	//==Called when function not exists trys to get a class instead (if the class has a function with the same name that will be called to with $args and result will be returned)
 	private function my_call($method, $args=NULL)
     {
@@ -176,10 +200,7 @@ class n_class
 			return $r_class;
 		}
     }
-
-
-	######################## PUBLIC FUNCTIONS
-	
+	######################## PUBLIC FUNCTIONS	
 	//==Registers a $path as an include path
 	public function register_path($path)
 	{
@@ -190,14 +211,12 @@ class n_class
     {
 		return $this->my_call($method, $args);
     }
-
 	//==Executs when static function not found (warps to my_call)
 	public static function __callStatic($method, $args)
     {
 		$n_c = new n_class();
 		return $n_c->my_call($method, $args);
     }
-
 	//==Returns config $var or $subvar of var if !$set_var else overwrites config var
 	public function cfg($var=NULL,$subvar=false,$set_var=null)
 	{
@@ -233,5 +252,4 @@ class n_class
 		if (is_callable($ret)) return $ret();
 		return $ret;
 	}
-
 }
