@@ -35,5 +35,6 @@ $config['path'] = array
 	),
 	'templates'		=> _ROOT_.'views',
 	'server_data'	=>_ROOT_.'cfg'._DS_.'server_data'._DS_,
-	'absolute_path'	=>	str_replace("//","/","///{$_SERVER['HTTP_HOST']}".str_replace("\\","/",dirname($_SERVER['PHP_SELF']))."/")
+	'absolute_path'	=>	str_replace("//","/","///{$_SERVER['HTTP_HOST']}".str_replace("\\","/",dirname($_SERVER['PHP_SELF']))."/"),
+	'git'					=>	'https://raw.githubusercontent.com/cojmar/n_engine/master/classes/',
 );
