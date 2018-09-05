@@ -1,7 +1,7 @@
 <?php
 /*		Project name : N_CLASS (the N class)
 *		Author : Alex Platon
-*		Version : 2.6 
+*		Version : 2.6.1
 *
 *		Description : 
 *			This class has the main purpose to include other classes as functions if the function not exsits on call, 
@@ -25,6 +25,7 @@
 *			2.5 redone __callStatic to work on more php versions
 *			2.6 if is set $config['path']['git'] 'https://raw.githubusercontent.com/cojmar/n_engine/master/classes/',	 n_class will try to download calses from git *			if missing
 *			Since version 2.1 config file is optional if it is missing current class path will be default include path
+*			2.6.1 minnor fix in config file location, use of DIRECTORY_SEPARATOR instead of /
 *
 *		Aditional functions:
 *			cfg -> returns config $variable, example : $this->cfg('path','scripts') shood return `scripts` var from `path` section in config
@@ -66,7 +67,7 @@ class n_class
 	{
 		if (!self::$config) 
 		{
-			$config_file = "cfg/config.php";
+			$config_file = "cfg".DIRECTORY_SEPARATOR."config.php";
 			if (file_exists($config_file))
 			{
 				include  $config_file;
